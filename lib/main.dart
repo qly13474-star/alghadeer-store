@@ -1,3 +1,4 @@
+my husband:
 import 'package:flutter/material.dart';
 import 'products_screen.dart';
 import 'cart_screen.dart';
@@ -22,8 +23,22 @@ class AlghadeerStoreApp extends StatelessWidget {
   }
 }
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  final TextEditingController _searchController = TextEditingController();
+  
+  final List<String> categories = [
+    'الأجهزة المنزلية',
+    'مستلزمات المطبخ',
+    'قسم الأخشاب',
+    'السلة والطلبات'
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -42,11 +57,42 @@ class HomeScreen extends StatelessWidget {
               style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 10),
-            const Text(
-              'الأجهزة المنزلية، المستلزمات والمطبخ، وقسم الأخشاب',
-              style: TextStyle(fontSize: 14, color: Colors.grey),
+            
+            // شريط البحث الذكي
+            TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: 'ابحث عن جهاز، أثاث، أو مستلزمات...',
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.clear),
+                  onPressed: () {
+                    _searchController.clear();
+                  },
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              onSubmitted: (value) {
+                if (value.isNotEmpty) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ProductsScreen(categoryName: 'نتائج البحث: $value'),
+                    ),
+                  );
+                }
+              },
             ),
-            const SizedBox(height: 20),
+            
+            const SizedBox(height: 15),
+            const Text(
+              'الأقسام الرئيسية:',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey),
+            ),
+            const SizedBox(height: 10),
+            
             Expanded(
               child: GridView.count(
                 crossAxisCount: 2,
@@ -75,7 +121,8 @@ class HomeScreen extends StatelessWidget {
           if (title == 'السلة والطلبات') {
             Navigator.push(
               context,
-              MaterialPageRoute(
+
+MaterialPageRoute(
                 builder: (context) => const CartScreen(cartItems: []),
               ),
             );
@@ -89,7 +136,7 @@ class HomeScreen extends StatelessWidget {
           }
         },
         child: Column(
-          MainAxisAlignment: MainAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(icon, size: 50, color: color),
             const SizedBox(height: 10),
