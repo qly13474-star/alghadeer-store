@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'products_screen.dart';
+import 'cart_screen.dart';
 
 void main() {
   runApp(const AlghadeerStoreApp());
@@ -71,15 +72,24 @@ class HomeScreen extends StatelessWidget {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
         onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => ProductsScreen(categoryName: title),
-            ),
-          );
+          if (title == 'السلة والطلبات') {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const CartScreen(cartItems: []),
+              ),
+            );
+          } else {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => ProductsScreen(categoryName: title),
+              ),
+            );
+          }
         },
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          MainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(icon, size: 50, color: color),
             const SizedBox(height: 10),
