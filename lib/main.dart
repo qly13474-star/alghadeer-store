@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'products_screen.dart';
 
 void main() {
   runApp(const AlghadeerStoreApp());
@@ -51,10 +52,10 @@ class HomeScreen extends StatelessWidget {
                 crossAxisSpacing: 10,
                 mainAxisSpacing: 10,
                 children: [
-                  _buildCategoryCard('الأجهزة المنزلية', Icons.kitchen, Colors.orange),
-                  _buildCategoryCard('مستلزمات المطبخ', Icons.restaurant, Colors.green),
-                  _buildCategoryCard('قسم الأخشاب', Icons.carpenter, Colors.brown),
-                  _buildCategoryCard('السلة والطلبات', Icons.shopping_cart, Colors.purple),
+                  _buildCategoryCard(context, 'الأجهزة المنزلية', Icons.kitchen, Colors.orange),
+                  _buildCategoryCard(context, 'مستلزمات المطبخ', Icons.restaurant, Colors.green),
+                  _buildCategoryCard(context, 'قسم الأخشاب', Icons.carpenter, Colors.brown),
+                  _buildCategoryCard(context, 'السلة والطلبات', Icons.shopping_cart, Colors.purple),
                 ],
               ),
             ),
@@ -64,12 +65,19 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildCategoryCard(String title, IconData icon, Color color) {
+  Widget _buildCategoryCard(BuildContext context, String title, IconData icon, Color color) {
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
-        onTap: () {},
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ProductsScreen(categoryName: title),
+            ),
+          );
+        },
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
