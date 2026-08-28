@@ -33,7 +33,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _searchController = TextEditingController();
 
-  // عرض نافذة خيارات الاتصال أو الواتساب برقمك المعتمد
+  // عرض نافذة الاتصال المباشر برقمك الرسمي
   void _showContactOptions(BuildContext context) {
     showModalBottomSheet(
       context: context,
@@ -54,11 +54,50 @@ class _HomeScreenState extends State<HomeScreen> {
               subtitle: const Text('07738487299'),
               onTap: () {
                 Navigator.pop(context);
-                // كود الاتصال الهاتفي المباشر
               },
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  // نافذة تتبع حالة الطلب للزبون (الخطوة الثالثة)
+  void _showOrderTracker(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('تتبع حالة طلبك - الغدير'),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('حالة طلبك الحالي في المتجر:', style: TextStyle(fontWeight: FontWeight.bold)),
+            SizedBox(height: 15),
+            ListTile(
+              leading: Icon(Icons.check_circle, color: Colors.green),
+              title: Text('تم استلام الطلب بنجاح'),
+            ),
+            ListTile(
+              leading: Icon(Icons.inventory, color: Colors.orange),
+              title: Text('جاري التجهيز وفحص المنتجات'),
+            ),
+            ListTile(
+              leading: Icon(Icons.local_shipping, color: Colors.blue),
+              title: Text('خرج مع المندوب (دراجة / سيارة نقل أثاث)'),
+            ),
+            ListTile(
+              leading: Icon(Icons.done_all, color: Colors.grey),
+              title: Text('تم التوصيل بنجاح'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('إغلاق'),
+          ),
+        ],
       ),
     );
   }
@@ -70,7 +109,7 @@ class _HomeScreenState extends State<HomeScreen> {
         title: const Text('الغدير للأجهزة المنزلية والتجارة العامة'),
         centerTitle: true,
       ),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -84,7 +123,8 @@ class _HomeScreenState extends State<HomeScreen> {
             // شريط البحث الذكي
             TextField(
               controller: _searchController,
-              decoration: InputDecoration(
+
+decoration: InputDecoration(
                 hintText: 'ابحث عن جهاز، أثاث، أو مستلزمات...',
                 prefixIcon: const Icon(Icons.search),
                 suffixIcon: IconButton(
@@ -110,30 +150,82 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             
             const SizedBox(height: 15),
+
+            // قسم عروض وتخفيضات اليوم (الخطوة الثانية)
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.red[50],
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.red.shade200),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '🔥 تخفيضات الغدير الكبرى',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.red),
+                      ),
+                      SizedBox(height: 4),
+                      Text('عروض خاصة على الأثاث والأجهزة المنزلية', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                    ],
+                  ),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const ProductsScreen(categoryName: 'عروض وتخفيضات اليوم'),
+                        ),
+                      );
+                    },
+                    child: const Text('تصفح العروض', style: TextStyle(color: Colors.white)),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 15),
+            
+            // زر سريع لتتبع الطلبات
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                icon: const Icon(Icons.track_changes, color: Colors.blue),
+                label: const Text('تتبع حالة طلباتي السابقة أو الحالية', style: TextStyle(fontWeight: FontWeight.bold)),
+                onPressed: () => _showOrderTracker(context),
+              ),
+            ),
+
+            const SizedBox(height: 15),
             const Text(
               'الأقسام الرئيسية:',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey),
             ),
             const SizedBox(height: 10),
             
-            Expanded(
-              child: GridView.count(
-                crossAxisCount: 2,
-                crossAxisSpacing: 10,
-                mainAxisSpacing: 10,
+            GridView.count(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisCount: 2,
+              crossAxisSpacing: 10,
+              mainAxisSpacing: 10,
+              children: [
+                _buildCategoryCard(context, 'الأجهزة المنزلية', Icons.kitchen, Colors.orange),
+                _buildCategoryCard(context, 'مستلزمات المطبخ', Icons.restaurant, Colors.green),
+                _buildCategoryCard(context, 'قسم الأخشاب', Icons.carpenter, Colors.brown),
 
-children: [
-                  _buildCategoryCard(context, 'الأجهزة المنزلية', Icons.kitchen, Colors.orange),
-                  _buildCategoryCard(context, 'مستلزمات المطبخ', Icons.restaurant, Colors.green),
-                  _buildCategoryCard(context, 'قسم الأخشاب', Icons.carpenter, Colors.brown),
-                  _buildCategoryCard(context, 'السلة والطلبات', Icons.shopping_cart, Colors.purple),
-                ],
-              ),
+_buildCategoryCard(context, 'السلة والطلبات', Icons.shopping_cart, Colors.purple),
+              ],
             ),
           ],
         ),
       ),
-      // زر اتصال عائم ذكي برقمك
+      // زر الاتصال العائم برقمك
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showContactOptions(context),
         backgroundColor: Colors.green,
