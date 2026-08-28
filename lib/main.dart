@@ -32,13 +32,36 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _searchController = TextEditingController();
-  
-  final List<String> categories = [
-    'الأجهزة المنزلية',
-    'مستلزمات المطبخ',
-    'قسم الأخشاب',
-    'السلة والطلبات'
-  ];
+
+  // عرض نافذة خيارات الاتصال أو الواتساب برقمك المعتمد
+  void _showContactOptions(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(20),
+        height: 180,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'تواصل مع إدارة متجر الغدير:',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 15),
+            ListTile(
+              leading: const Icon(Icons.phone, color: Colors.green, size: 30),
+              title: const Text('اتصال مباشر', style: TextStyle(fontWeight: FontWeight.bold)),
+              subtitle: const Text('07738487299'),
+              onTap: () {
+                Navigator.pop(context);
+                // كود الاتصال الهاتفي المباشر
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -98,7 +121,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 crossAxisCount: 2,
                 crossAxisSpacing: 10,
                 mainAxisSpacing: 10,
-                children: [
+
+children: [
                   _buildCategoryCard(context, 'الأجهزة المنزلية', Icons.kitchen, Colors.orange),
                   _buildCategoryCard(context, 'مستلزمات المطبخ', Icons.restaurant, Colors.green),
                   _buildCategoryCard(context, 'قسم الأخشاب', Icons.carpenter, Colors.brown),
@@ -108,6 +132,13 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ],
         ),
+      ),
+      // زر اتصال عائم ذكي برقمك
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => _showContactOptions(context),
+        backgroundColor: Colors.green,
+        icon: const Icon(Icons.phone, color: Colors.white),
+        label: const Text('اتصل بالمتجر', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
       ),
     );
   }
@@ -121,8 +152,7 @@ class _HomeScreenState extends State<HomeScreen> {
           if (title == 'السلة والطلبات') {
             Navigator.push(
               context,
-
-MaterialPageRoute(
+              MaterialPageRoute(
                 builder: (context) => const CartScreen(cartItems: []),
               ),
             );
