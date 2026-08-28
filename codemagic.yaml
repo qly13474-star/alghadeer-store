@@ -1,11 +1,9 @@
 workflows:
-  default-workflow:
-    name: Default Workflow
+  android-workflow:
+    name: Android Workflow
     max_build_duration: 120
     environment:
       flutter: stable
-      xcode: latest
-      cocoapods: default
     scripts:
       - name: Get Flutter packages
         script: flutter pub get
