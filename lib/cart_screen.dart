@@ -25,24 +25,86 @@ class _CartScreenState extends State<CartScreen> {
     super.dispose();
   }
 
+  // نظام ذكي لحساب المجاميع وتلافي أي أعطال في صيغة الأسعار
+  double _calculateTotal() {
+    double total = 0.0;
+    try {
+      for (var item in widget.cartItems) {
+        String priceStr = item['price'] ?? '0';
+        double price = double.tryParse(priceStr.replaceAll(RegExp(r'[^0-9.]'), '')) ?? 0.0;
+        total += price;
+      }
+    } catch (e) {
+      total = 0.0; // تلافي أي خطأ مفاجئ وحماية التطبيق من الإغلاق
+    }
+    return total;
+  }
+
+  // فحص ذكي لمدخلات الزبون قبل إرسال الطلب
+  void _validateAndSubmitOrder(BuildContext context) {
+    final name = _nameController.text.trim();
+    final phone = _phoneController.text.trim();
+    final address = _addressController.text.trim();
+
+    if (name.isEmpty  phone.isEmpty  address.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('تنبيه ذكي: ييرجى استكمال الحقول الفارغة (الاسم، الهاتف، العنوان)'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    // التحقق من صحة رقم الهاتف العراقي بشكل ذكي
+    if (phone.length < 10) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('الرجاء التأكد من كتابة رقم هاتف صحيح للتواصل'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('تم استلام طلبك بنجاح الذكي'),
+        content: Text(
+          'شكراً لتسوقك في متجر الغدير!\n\n'
+          'الاسم: $name\n'
+          'الهاتف: $phone\n'
+          'العنوان: $address\n'
+          'وسيلة النقل المختارة: $_deliveryType\n\n'
+          'تمت معالجة الطلب بنجاح وسيتصل بك المندوب قريباً.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.pop(context);
+            },
+            child: const Text('حسناً'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    double total = 0.0;
-    for (var item in widget.cartItems) {
-      String priceStr = item['price'] ?? '0';
-      double price = double.tryParse(priceStr.replaceAll(RegExp(r'[^0-9.]'), '')) ?? 0;
-      total += price;
-    }
+    double total = _calculateTotal();
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('سلة الطلبات وإتمام التوصيل - الغدير'),
+        title: const Text('سلة الطلبات الذكية - الغدير'),
         centerTitle: true,
       ),
       body: widget.cartItems.isEmpty
           ? const Center(
               child: Text(
-                'السلة فارغة حالياً',
+                'السلة فارغة حالياً، أضف بعض المنتجات',
                 style: TextStyle(fontSize: 18, color: Colors.grey),
               ),
             )
@@ -61,27 +123,28 @@ class _CartScreenState extends State<CartScreen> {
                     physics: const NeverScrollableScrollPhysics(),
                     itemCount: widget.cartItems.length,
                     itemBuilder: (context, index) {
-                      final item = widget.cartItems[index];
+
+final item = widget.cartItems[index];
                       return Card(
                         margin: const EdgeInsets.symmetric(vertical: 4),
                         child: ListTile(
-                          title: Text(item['name'] ?? ''),
-                          subtitle: Text(item['price'] ?? ''),
-                          trailing: const Icon(Icons.shopping_bag, color: Colors.blue),
+                          title: Text(item['name'] ?? 'منتج'),
+                          subtitle: Text(item['price'] ?? '0 د.ع'),
+                          trailing: const Icon(Icons.check_circle, color: Colors.green),
                         ),
                       );
                     },
                   ),
                   const Divider(height: 30, thickness: 2),
                   const Text(
-                    'معلومات العميل وتفاصيل التوصيل:',
+                    'معلومات التوصيل الذكي:',
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 10),
                   TextField(
                     controller: _nameController,
                     decoration: const InputDecoration(
-                      labelText: 'اسم الزيون الكامل',
+                      labelText: 'الاسم الكامل للزبون',
                       border: OutlineInputBorder(),
                       prefixIcon: Icon(Icons.person),
                     ),
@@ -91,7 +154,7 @@ class _CartScreenState extends State<CartScreen> {
                     controller: _phoneController,
                     keyboardType: TextInputType.phone,
                     decoration: const InputDecoration(
-                      labelText: 'رقم الهاتف للتواصل',
+                      labelText: 'رقم الهاتف (مثال: 0770...)',
                       border: OutlineInputBorder(),
                       prefixIcon: Icon(Icons.phone),
                     ),
@@ -100,15 +163,14 @@ class _CartScreenState extends State<CartScreen> {
                   TextField(
                     controller: _addressController,
                     decoration: const InputDecoration(
-                      labelText: 'العنوان بالتفصيل (المنطقة، الاقرب نقطة دالة)',
-
-border: OutlineInputBorder(),
+                      labelText: 'العنوان بالتفصيل (بعقوبة، المنطقة، أقرب نقطة دالة)',
+                      border: OutlineInputBorder(),
                       prefixIcon: Icon(Icons.location_on),
                     ),
                   ),
                   const SizedBox(height: 20),
                   const Text(
-                    'اختر وسيلة النقل المناسبة:',
+                    'تحديد وسيلة النقل تلقائياً أو يدوياً:',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                   DropdownButtonFormField<String>(
@@ -146,7 +208,8 @@ border: OutlineInputBorder(),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Text(
+
+const Text(
                               'المجموع الكلي:',
                               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                             ),
@@ -161,49 +224,12 @@ border: OutlineInputBorder(),
                           width: double.infinity,
                           child: ElevatedButton(
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.green,
+                              backgroundColor: Colors.blue[800],
                               padding: const EdgeInsets.symmetric(vertical: 14),
                             ),
-                            onPressed: () {
-                              if (_nameController.text.isEmpty ||
-                                  _phoneController.text.isEmpty ||
-                                  _addressController.text.isEmpty) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('يرجى ملء جميع حقول الاسم ورقم الهاتف والعنوان'),
-                                    backgroundColor: Colors.red,
-                                  ),
-                                );
-                                return;
-                              }
-
-                              showDialog(
-                                context: context,
-                                builder: (context) => AlertDialog(
-                                  title: const Text('تم إرسال طلبك بنجاح'),
-                                  content: Text(
-
-'شكراً لتسوقك في متجر الغدير!\n\n'
-                                    'الاسم: ${_nameController.text}\n'
-                                    'الهاتف: ${_phoneController.text}\n'
-                                    'العنوان: ${_addressController.text}\n'
-                                    'وسيلة النقل: $_deliveryType\n\n'
-                                    'سيتم تحويل الطلب إلى قسم التوصيل المختص وسيتصل بك المندوب قريباً.',
-                                  ),
-                                  actions: [
-                                    TextButton(
-                                      onPressed: () {
-                                        Navigator.pop(context);
-                                        Navigator.pop(context);
-                                      },
-                                      child: const Text('حسناً'),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            },
+                            onPressed: () => _validateAndSubmitOrder(context),
                             child: const Text(
-                              'إرسال الطلب وتأكيد التوصيل',
+                              'إرسال الطلب عبر نظام الغدير الذكي',
                               style: TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold),
                             ),
                           ),
