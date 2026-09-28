@@ -1,0 +1,116 @@
+name: Build Android APK
+
+# التشغيل يدوي فقط: Actions ← Build Android APK ← Run workflow
+# الافتراضي: DEBUG APK للاختبار بدون أي keystore. Release يحتاج أسرار التوقيع، وإن لم تكن موجودة يُبنى Debug تلقائياً.
+on:
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: "نوع البناء"
+        type: choice
+        default: debug
+        options: [debug, release]
+
+permissions:
+  contents: read
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      # لا يمكن استعمال secrets مباشرة داخل if، لذلك نحوّلها إلى علامات true/false فقط (لا تُطبع قيمها)
+      HAS_KEYSTORE: ${{ secrets.KEYSTORE_B64 != '' && secrets.KEYSTORE_PASSWORD != '' && secrets.KEY_ALIAS != '' }}
+      HAS_FILESTACK: ${{ secrets.VITE_FILESTACK_API_KEY != '' }}
+      HAS_FIREBASE: ${{ secrets.VITE_FIREBASE_API_KEY != '' && secrets.VITE_FIREBASE_PROJECT_ID != '' && secrets.VITE_FIREBASE_APP_ID != '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20          # بدون cache: لا يوجد package-lock.json في المستودع
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Check secrets (values are never printed)
+        run: |
+          if [ "$HAS_FIREBASE" != "true" ]; then
+            echo "::error::أسرار Firebase ناقصة (VITE_FIREBASE_API_KEY / VITE_FIREBASE_PROJECT_ID / VITE_FIREBASE_APP_ID). أضفها في Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+          if [ "$HAS_FILESTACK" != "true" ]; then
+            echo "::warning::VITE_FILESTACK_API_KEY غير موجود: سيُبنى التطبيق ويعمل، لكن رفع الصور سيكون معطّلاً (يظهر تنبيه للمشرف)."
+          fi
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Verify filestack-js is installed
+        run: npm ls filestack-js
+
+      - name: Build web app (Vite)
+        env:
+          VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
+          VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
+          VITE_FIREBASE_PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
+          VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}
+          VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
+          VITE_FILESTACK_API_KEY: ${{ secrets.VITE_FILESTACK_API_KEY }}
+        run: npm run build
+
+      - name: Add Android platform
+        run: |
+          npx cap add android
+          bash scripts/android-setup.sh
+
+      - name: Generate icon and splash
+        run: npx capacitor-assets generate --android
+
+      - name: Sync web build into Android
+        run: npx cap sync android
+
+      - name: Decide build type
+        id: kind
+        run: |
+          if [ "${{ inputs.build_type }}" = "release" ] && [ "$HAS_KEYSTORE" = "true" ]; then
+            echo "type=release" >> "$GITHUB_OUTPUT"
+          else
+            if [ "${{ inputs.build_type }}" = "release" ]; then
+              echo "::warning::أسرار التوقيع غير موجودة، سيتم بناء DEBUG APK بدلاً من Release."
+            fi
+            echo "type=debug" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build DEBUG APK (installable, no keystore needed)
+        if: steps.kind.outputs.type == 'debug'
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+          cp app/build/outputs/apk/debug/app-debug.apk ../alghadeer-debug.apk
+
+      - name: Build and sign RELEASE APK
+        if: steps.kind.outputs.type == 'release'
+        working-directory: android
+        env:
+          KS: ${{ secrets.KEYSTORE_B64 }}
+          KP: ${{ secrets.KEYSTORE_PASSWORD }}
+          KA: ${{ secrets.KEY_ALIAS }}
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon
+          BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          echo "$KS" | base64 -d > "$RUNNER_TEMP/release.keystore"
+          "$BT/zipalign" -p 4 app/build/outputs/apk/release/app-release-unsigned.apk "$RUNNER_TEMP/aligned.apk"
+          "$BT/apksigner" sign --ks "$RUNNER_TEMP/release.keystore" --ks-pass env:KP --ks-key-alias "$KA" --out ../alghadeer-release.apk "$RUNNER_TEMP/aligned.apk"
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: alghadeer-${{ steps.kind.outputs.type }}-apk
+          path: alghadeer-*.apk
+          if-no-files-found: error
+          retention-days: 14

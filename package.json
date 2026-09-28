@@ -1,0 +1,29 @@
+{
+  "name": "alghadeer-store",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "cap:add": "npx cap add android",
+    "cap:assets": "npx capacitor-assets generate --android",
+    "cap:sync": "npm run build && npx cap sync android",
+    "apk": "npm run cap:sync && cd android && ./gradlew assembleRelease"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.1.2",
+    "@capacitor/core": "^6.1.2",
+    "@capacitor/splash-screen": "^6.0.2",
+    "filestack-js": "^3.51.6",
+    "firebase": "^10.13.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^6.1.2",
+    "@vitejs/plugin-react": "^4.3.1",
+    "vite": "^5.4.2"
+  }
+}

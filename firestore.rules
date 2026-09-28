@@ -1,0 +1,41 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{db}/documents {
+    function signedIn() { return request.auth != null; }
+    function role() { return get(/databases/$(db)/documents/users/$(request.auth.uid)).data.role; }
+    function staff() { return signedIn() && role() in ['ADMIN','MANAGER']; }
+
+    function phoneMail(d) { return d.phoneNormalized + '@phone.alghadeer.store'; }
+    function userKeysOk(d) { return d.keys().hasOnly(['phone','phoneNormalized','name','role','createdAt','updatedAt']); }
+
+    match /users/{u} {
+      allow read: if signedIn() && (request.auth.uid == u || staff());
+      // الإنشاء: دور CUSTOMER فقط، ورقم الهاتف يجب أن يطابق المعرّف الداخلي لحساب المصادقة (لا يمكن انتحال رقم غيرك)
+      allow create: if signedIn() && request.auth.uid == u && userKeysOk(request.resource.data)
+        && request.resource.data.role == 'CUSTOMER'
+        && request.auth.token.email == phoneMail(request.resource.data)
+        && request.resource.data.name is string && request.resource.data.name.size() <= 80;
+      // المالك: لا يغيّر الدور ولا رقمه الموحّد؛ ADMIN فقط يغيّر الأدوار
+      allow update: if signedIn() && ((request.auth.uid == u && userKeysOk(request.resource.data)
+        && request.resource.data.role == resource.data.role
+        && request.resource.data.phoneNormalized == resource.data.phoneNormalized) || role() == 'ADMIN');
+    }
+    match /{coll}/{id} {
+      allow read: if coll in ['categories','products','banners','settings'];
+      allow write: if coll in ['categories','products','banners','settings'] && staff();
+    }
+    match /orders/{id} {
+      allow create: if signedIn() && request.resource.data.uid == request.auth.uid
+        && request.resource.data.status == 'NEW' && request.resource.data.payment == 'COD'
+        && request.resource.data.items.size() > 0 && request.resource.data.items.size() <= 50;
+      allow read: if signedIn() && (resource.data.uid == request.auth.uid || resource.data.get('courierId','') == request.auth.uid || staff());
+      allow update: if (signedIn() && resource.data.get('courierId','') == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','courierNote','updatedAt'])
+        && request.resource.data.status in ['ASSIGNED_TO_COURIER','OUT_FOR_DELIVERY','DELIVERED']) || staff();
+    }
+    match /favorites/{id} {
+      allow read, delete: if signedIn() && resource.data.uid == request.auth.uid;
+      allow create: if signedIn() && request.resource.data.uid == request.auth.uid;
+    }
+  }
+}

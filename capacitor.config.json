@@ -1,0 +1,8 @@
+{
+  "appId": "com.alghadeer.store",
+  "appName": "الغدير",
+  "webDir": "dist",
+  "plugins": {
+    "SplashScreen": { "launchShowDuration": 1800, "backgroundColor": "#0B1F3A", "showSpinner": false }
+  }
+}
